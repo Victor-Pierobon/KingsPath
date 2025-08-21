@@ -1,5 +1,6 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QProgressBar, QVBoxLayout, QHBoxLayout
+import database
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QProgressBar, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QSpinBox, QComboBox, QFrame
 from PyQt6.QtCore import Qt
 from models import Player
 
@@ -10,6 +11,7 @@ class MainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__() # Chama o construtor da classe pai
+        database.init_db()
         self.player = Player("NullByte")
         self.setWindowTitle("Kings Path")
         self.setGeometry(100, 100, 600, 400) # posição x, posição y, largura, Altura
@@ -22,34 +24,75 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        main_layout = QVBoxLayout()
-        central_widget.setLayout(main_layout)
+        self.main_layout = QVBoxLayout()
+        self.setup_player_section()
+        self.setup_mission_section()
+        self.main_layout.addStretch()
+        self.refresh_ui()
 
-        player_name_label = QLabel(f"jogador: {self.player.name}")
+    def setup_player_section(self):
+        """Cria a seção de status do jogador e atributos"""
+        player_name_label = QLabel(f"Jogador: {self.player.name}")
         player_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        player_name_label.setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 20px;")
-        main_layout.addWidget(player_name_label)
+        player_name_label.setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 10px;")
+        self.main_layout.addWidget(player_name_label)
 
-        # Usamos um loop para criar uma linha para cada atributo do jogador
         for attr_name, attribute in self.player.attributes.items():
-            attr_label = QLabel(f"{attr_name}: Nível: {attribute.level}")
-            attr_label.setStyleSheet("font-size: 16px;")
-
+            attr_label = QLabel()
             xp_bar = QProgressBar()
-            xp_bar.setRange(0, attribute.xp_to_next_level)
-            xp_bar.setValue(attribute.current_xp)
-            xp_bar.setTextVisible(True)
-            xp_bar.setFormat(f"{attribute.current_xp} / {attribute.xp_to_next_level} XP")
 
-            # Layout horizontal para a linha do atributo (nome ao lado da barra)
+            self.attribute_widgets[attr_name] = {'label': attr_label, 'bar': xp_bar}
+
             attr_layout = QHBoxLayout()
             attr_layout.addWidget(attr_label)
             attr_layout.addWidget(xp_bar)
+            self.main_layout.addLayout(attr_layout)
 
-            main_layout.addLayout(attr_layout)
+    def setup_mission_section(self):
+        """Cria a seção de gerenciamento de missões"""
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.main_layout.addWidget(line)
 
-        # Adiciona um "espaçador" para empurrar tudo para cima
-        main_layout.addStretch()
+        add_mission_label = QLabel("Adicionar Nova Missão")
+        add_mission_label.setStyleSheet("font-size: 20px; font-weight: bold; margin-top: 20px;")
+        self.main_layout.addWidget(add_mission_label)
+
+        self.desc_input = QLineEdit()
+        self.desc_input.setPlaceholderText("Descrição da Missão")
+
+        self.xp_input = QSpinBox()
+        self.xp_input.setRange(1, 1000)
+        self.xp_input.setValue(10)
+
+        self.attr_dropdown = QComboBox()
+        self.attr_dropdown.addItems(self.player.attributes.keys())
+
+        add_button = QPushButton("Adicionar")
+        add_button.clicked.connect(self.handle_add_mission)
+
+        form_layout = QHBoxLayout()
+        form_layout.addWidget(self.desc_input)
+        form_layout.addWidget(QLabel("XP:"))
+        form_layout.addWidget(self.xp_input)
+        form_layout.addWidget(QLabel("Atributo:"))
+        form_layout.addWidget(self.attr_dropdown)
+        form_layout.addWidget(add_button)
+        self.main_layout.addLayout(form_layout)
+
+        missions_list_label = QLabel("Missões Ativas")
+        missions_list_label.setStyleSheet("font-size: 20px; font-weight: bold; margin-top: 20px;")
+        self.main_layout.addWidget(missions_list_label)
+
+    
+    def refresh_ui(self):
+        """Atualiza toda a interface com os dados mais recentes"""
+        self.refresh_attributes_ui()
+        self.refresh_missions_list()
+
+
+        
 
 # Este código só é executado quando você roda o arquivo 'main.py' diretamente.
 if __name__ == "__main__":
