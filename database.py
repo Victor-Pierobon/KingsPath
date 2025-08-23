@@ -14,9 +14,9 @@ def init_db():
             description TEXT NOT NULL,
             reward_xp INTEGER NOT NULL,
             attribute_name TEXT NOT NULL,
-            mission_type TEXT DEFAULT "daily"
-            completed BOOLEAN DEAFULT 0
-            )
+            mission_type TEXT DEFAULT 'daily',
+            completed INTEGER 
+        )
     """)
     conn.commit()
     conn.close()
@@ -32,7 +32,7 @@ def add_mission(description, reward_xp, attribute_name):
     conn.commit()
     conn.close()
 
-def get_active_mission(mission_id):
+def get_active_missions():
     """Retorna uma lista com todas as missões não concluidas"""
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
