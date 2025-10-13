@@ -15,7 +15,7 @@ def init_db():
             reward_xp INTEGER NOT NULL,
             attribute_name TEXT NOT NULL,
             mission_type TEXT DEFAULT 'daily',
-            completed INTEGER 
+            completed INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -26,7 +26,7 @@ def add_mission(description, reward_xp, attribute_name):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO missions(description, reward_xp, attribute_name) VALUES (?, ?, ?)",
+        "INSERT INTO missions(description, reward_xp, attribute_name, completed) VALUES (?, ?, ?, 0)",
         (description, reward_xp, attribute_name)
     )
     conn.commit()
@@ -45,16 +45,16 @@ def get_active_missions():
 def delete_mission(mission_id):
     """Deleta uma missão pelo id"""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.curosr()
+    cursor = conn.cursor()
     cursor.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
     conn.commit()
     conn.close()
 
 def complete_mission(mission_id):
     """Altera o valor do Boolean dizendo que a missão foi concluida"""
-    conn = sqlite3.connect()
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("UPDATE missions SET completed = 1 WHERE id =?", (mission_id))
+    cursor.execute("UPDATE missions SET completed = 1 WHERE id = ?", (mission_id,))
     conn.commit()
     conn.close()
     

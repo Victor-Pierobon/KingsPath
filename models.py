@@ -16,7 +16,7 @@ class Attribute:
         print(f"Ganhou {amount} XP em {self.name}! Total Agora: {self.current_xp}/ {self.xp_to_next_level}")
 
         while self.current_xp >= self.xp_to_next_level:
-            self.level_ip()
+            self.level_up()
     
     def level_up(self):
         xp_excess = self.current_xp - self.xp_to_next_level
@@ -50,11 +50,25 @@ class Player:
             print(f"Recompensa de {reward_xp} XP aplicada em {attribute_name}!")
         else:
             print(f"Erro: Atributo '{attribute_name}' não encontrado!")
+    def get_overall_level(self):
+        """Calcula o nível geral baseado na média dos atributos"""
+        total_levels = sum(attr.level for attr in self.attributes.values())
+        return total_levels // len(self.attributes)
+    
+    def get_attributes_data(self):
+        """Retorna dados dos atributos para o gráfico radar"""
+        return {
+            name: {
+                'level': attr.level,
+                'progress': attr.current_xp / attr.xp_to_next_level * 100
+            }
+            for name, attr in self.attributes.items()
+        }
         
     def get_status(self):
         print("\n --- Status do Player ---")
         print(f"Nome: {self.name}")
-        for attr_name, attribute in self.attributes.item():
+        for attr_name, attribute in self.attributes.items():
             print(f"- {attr_name}: Nivel {attribute.level} ({attribute.current_xp}/{attribute.xp_to_next_level} XP)")
         print("---------------------\n")
         
