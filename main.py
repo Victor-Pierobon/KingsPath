@@ -152,7 +152,8 @@ class MainWindow(QMainWindow):
             'Inteligência': '🧠', 
             'Carisma': '😎',
             'Sabedoria': '🧙',
-            'Riqueza': '💰'
+            'Riqueza': '💰',
+            'Relacionamento': '❤️'
         }
         
         for attr_name, attribute in self.player.attributes.items():

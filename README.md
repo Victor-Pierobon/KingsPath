@@ -19,13 +19,22 @@ Um aplicativo inspirado em Solo Leveling para gamificar seu desenvolvimento pess
 
 ## 🚀 Como Usar
 
-### Instalação
+### Instalação Rápida
 ```bash
-# Clone o repositório
-cd KingsPath
+# Instalação completa (recomendado)
+python install.py
+```
 
+### Instalação Manual
+```bash
 # Instale as dependências
 pip install -r requirements.txt
+
+# Configure dados de demonstração
+python setup_demo.py
+
+# Configure inicialização automática (opcional)
+python setup_startup.py
 ```
 
 ### Configurar Dados de Demonstração
@@ -35,7 +44,17 @@ python setup_demo.py
 
 ### Executar o App
 ```bash
+# Método 1: Python (com terminal)
 python main.py
+
+# Método 2: Arquivo Batch (com terminal)
+KingsPath.bat
+
+# Método 3: Sem Terminal (recomendado)
+KingsPath.pyw
+
+# Método 4: Inicialização automática (sem terminal)
+# O app iniciará automaticamente com o Windows
 ```
 
 ### Testar Funcionalidades
@@ -69,6 +88,10 @@ python test_app.py
 - `setup_demo.py` - Script para configurar dados de demonstração
 - `styles.py` - Estilos futuristas do aplicativo
 - `demo_visual.py` - Demonstração do tema visual
+- `KingsPath.bat` - Arquivo batch para executar o app (com terminal)
+- `KingsPath.pyw` - Executa o app sem mostrar terminal
+- `setup_startup.py` - Configura inicialização automática
+- `install.py` - Script de instalação completa
 - `test_app.py` - Script de testes
 - `kings_path.db` - Banco de dados SQLite (criado automaticamente)
 
@@ -98,6 +121,9 @@ python test_app.py
 - ✅ Tema futurista implementado com transparência
 - ✅ Cores azul e roxo com efeitos de brilho
 - ✅ Ícones e emojis adicionados para melhor UX
+- ✅ Sistema de inicialização automática com Windows
+- ✅ Script de instalação completa criado
+- ✅ Persistência de dados implementada (progresso salvo automaticamente)
 
 ## 📝 Notas Técnicas
 

@@ -21,11 +21,13 @@ def setup_demo_data():
         ("Ter uma conversa significativa com alguém", 20, "Carisma"),
         ("Meditar por 15 minutos", 25, "Sabedoria"),
         ("Economizar R$ 50 hoje", 15, "Riqueza"),
+        ("Ligar para um amigo ou familiar", 25, "Relacionamento"),
         ("Fazer flexões até a falha", 20, "Força"),
         ("Aprender algo novo online", 25, "Inteligência"),
         ("Ajudar alguém sem esperar nada em troca", 30, "Carisma"),
         ("Refletir sobre o dia no diário", 20, "Sabedoria"),
-        ("Pesquisar investimentos por 30 min", 25, "Riqueza")
+        ("Pesquisar investimentos por 30 min", 25, "Riqueza"),
+        ("Sair com amigos ou família", 30, "Relacionamento")
     ]
     
     for description, xp, attribute in demo_missions:

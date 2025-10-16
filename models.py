@@ -31,13 +31,27 @@ class Player:
     """
     def __init__(self, name):
         self.name = name
-        self.attributes = {
-            "Força": Attribute("Força"),
-            "Inteligência": Attribute("Inteligência"),
-            "Carisma": Attribute("Carisma"),
-            "Sabedoria": Attribute("Sabedoria"),
-            "Riqueza": Attribute("Riqueza")
-        }
+        self.load_attributes()
+    
+    def load_attributes(self):
+        """Carrega atributos do banco de dados"""
+        import database
+        saved_attrs = database.load_player_attributes()
+        
+        self.attributes = {}
+        default_attrs = ["Força", "Inteligência", "Carisma", "Sabedoria", "Riqueza", "Relacionamento"]
+        
+        for attr_name in default_attrs:
+            if attr_name in saved_attrs:
+                data = saved_attrs[attr_name]
+                self.attributes[attr_name] = Attribute(attr_name, data['level'], data['current_xp'])
+            else:
+                self.attributes[attr_name] = Attribute(attr_name)
+    
+    def save_attributes(self):
+        """Salva atributos no banco de dados"""
+        import database
+        database.save_player_attributes(self.attributes)
 
 
     def complete_mission_action(self, reward_xp, attribute_name):
@@ -47,6 +61,7 @@ class Player:
         target_attribute  = self.attributes.get(attribute_name)
         if target_attribute:
             target_attribute.add_xp(reward_xp)
+            self.save_attributes()  # Salvar progresso
             print(f"Recompensa de {reward_xp} XP aplicada em {attribute_name}!")
         else:
             print(f"Erro: Atributo '{attribute_name}' não encontrado!")
