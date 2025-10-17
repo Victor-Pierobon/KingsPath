@@ -17,7 +17,6 @@ class StatusWindow(QDialog):
         
         # Aplicar estilo futurista
         self.setStyleSheet(MAIN_WINDOW_STYLE)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         
         self.setup_ui()
         
@@ -71,7 +70,7 @@ class StatusWindow(QDialog):
     
     def create_radar_chart(self):
         """Cria o gráfico radar dos atributos"""
-        self.figure = Figure(figsize=(8, 6), facecolor=COLORS['dark'])
+        self.figure = Figure(figsize=(8, 6), facecolor='#1A1A2E')
         self.canvas = FigureCanvas(self.figure)
         
         ax = self.figure.add_subplot(111, projection='polar')
@@ -106,7 +105,7 @@ class StatusWindow(QDialog):
         
         # Estilo
         ax.grid(True, alpha=0.3, color=COLORS['secondary'])
-        ax.set_facecolor(COLORS['darker'])
+        ax.set_facecolor('#16213E')
         
         # Cores dos labels
         ax.tick_params(colors=COLORS['text'])

@@ -11,11 +11,11 @@ def setup_startup():
     """Configura inicialização automática usando arquivo batch"""
     print("[STARTUP] Configurando inicialização automática...")
     
-    # Caminho do arquivo .pyw (executa sem terminal)
-    pyw_path = os.path.abspath("KingsPath.pyw")
+    # Caminho do arquivo batch com Python absoluto
+    bat_path = os.path.abspath("KingsPath_startup.bat")
     
-    if not os.path.exists(pyw_path):
-        print("[ERRO] Arquivo KingsPath.pyw não encontrado.")
+    if not os.path.exists(bat_path):
+        print("[ERRO] Arquivo KingsPath_startup.bat não encontrado.")
         return False
     
     try:
@@ -27,10 +27,10 @@ def setup_startup():
             winreg.KEY_SET_VALUE
         )
         
-        winreg.SetValueEx(key, "KingsPath", 0, winreg.REG_SZ, pyw_path)
+        winreg.SetValueEx(key, "KingsPath", 0, winreg.REG_SZ, bat_path)
         winreg.CloseKey(key)
         
-        print(f"[STARTUP] Adicionado ao registro: {pyw_path}")
+        print(f"[STARTUP] Adicionado ao registro: {bat_path}")
         return True
         
     except Exception as e:

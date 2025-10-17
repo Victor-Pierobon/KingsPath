@@ -4,29 +4,28 @@ Estilos futuristas para o Kings Path
 
 # Paleta de cores futurista
 COLORS = {
-    'primary': '#6C63FF',      # Roxo vibrante
-    'secondary': '#4ECDC4',    # Azul ciano
-    'accent': '#FF6B6B',       # Vermelho suave
-    'success': '#4ECDC4',      # Verde ciano
-    'warning': '#FFE66D',      # Amarelo
-    'danger': '#FF6B6B',       # Vermelho
-    'dark': '#1A1A2E',         # Azul escuro
-    'darker': '#16213E',       # Azul mais escuro
-    'light': 'rgba(255, 255, 255, 0.1)',  # Branco transparente
-    'text': '#E0E0E0',         # Texto claro
-    'text_secondary': '#B0B0B0' # Texto secundário
+    'primary': '#6C63FF',
+    'secondary': '#4ECDC4',
+    'success': '#4ECDC4',
+    'danger': '#FF6B6B',
+    'darker': '#16213E',
+    'light': 'rgba(255, 255, 255, 0.1)',
+    'text': '#E0E0E0',
+    'text_secondary': '#B0B0B0',
+    'background': "22, 33, 62",
+    'transparency': 0.8
 }
 
 # Estilo principal da janela
 MAIN_WINDOW_STYLE = f"""
 QMainWindow {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 {COLORS['dark']}, stop:1 {COLORS['darker']});
+        stop:0 rgba(26, 26, 46, 0.85), stop:1 rgba(22, 33, 62, 0.85));
     color: {COLORS['text']};
 }}
 
 QWidget {{
-    background: transparent;
+    background: {COLORS['background'],['transparency']};
     color: {COLORS['text']};
     font-family: 'Segoe UI', Arial, sans-serif;
 }}
@@ -157,41 +156,6 @@ INPUT_STYLES = {
         QLineEdit:focus {{
             border-color: {COLORS['secondary']};
             box-shadow: 0 0 10px {COLORS['secondary']};
-        }}
-    """,
-    'spin_box': f"""
-        QSpinBox {{
-            background: {COLORS['light']};
-            border: 2px solid {COLORS['primary']};
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 14px;
-            color: {COLORS['text']};
-        }}
-        QSpinBox:focus {{
-            border-color: {COLORS['secondary']};
-        }}
-    """,
-    'combo_box': f"""
-        QComboBox {{
-            background: {COLORS['light']};
-            border: 2px solid {COLORS['primary']};
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 14px;
-            color: {COLORS['text']};
-        }}
-        QComboBox:focus {{
-            border-color: {COLORS['secondary']};
-        }}
-        QComboBox::drop-down {{
-            border: none;
-        }}
-        QComboBox::down-arrow {{
-            image: none;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid {COLORS['text']};
         }}
     """
 }

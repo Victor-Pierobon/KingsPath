@@ -9,7 +9,7 @@ class Attribute:
         self.xp_to_next_level = self.calculate_xp_to_next_level()
 
     def calculate_xp_to_next_level(self):
-        return 50 * self.level + 20 * self.level**2
+        return 20 + 10 * self.level
     
     def add_xp(self, amount):
         self.current_xp += amount
@@ -66,9 +66,9 @@ class Player:
         else:
             print(f"Erro: Atributo '{attribute_name}' não encontrado!")
     def get_overall_level(self):
-        """Calcula o nível geral baseado na média dos atributos"""
-        total_levels = sum(attr.level for attr in self.attributes.values())
-        return total_levels // len(self.attributes)
+        """Calcula o nível geral somando todos os níveis (desconsiderando nível 1 base)"""
+        total_levels = sum(attr.level - 1 for attr in self.attributes.values())
+        return total_levels
     
     def get_attributes_data(self):
         """Retorna dados dos atributos para o gráfico radar"""

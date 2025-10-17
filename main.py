@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt
 from models import Player
 from status_window import StatusWindow
 from styles import *
+from ai_xp_calculator import MissionXPCalculator
 
 
 class MainWindow(QMainWindow):
@@ -15,15 +16,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         database.init_db()
-        self.player = Player("NullByte")
+        self.player = Player("Victor M Pierobon")
         self.attribute_widgets = {}
         self.missions_layout = None
-        self.setWindowTitle("⚔️ Kings Path - Solo Leveling")
+        self.xp_calculator = MissionXPCalculator()
+        self.setWindowTitle("⚔️ Kings Path ")
         self.setGeometry(100, 100, 900, 750)
         
         # Aplicar estilo futurista
         self.setStyleSheet(MAIN_WINDOW_STYLE)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         
         # Efeitos visuais extras
         self.setWindowOpacity(0.95)  # Transparência sutil
@@ -93,30 +94,12 @@ class MainWindow(QMainWindow):
         self.desc_input.setPlaceholderText("📝 Descrição da Missão")
         self.desc_input.setStyleSheet(INPUT_STYLES['line_edit'])
 
-        self.xp_input = QSpinBox()
-        self.xp_input.setRange(1, 1000)
-        self.xp_input.setValue(10)
-        self.xp_input.setStyleSheet(INPUT_STYLES['spin_box'])
-
-        self.attr_dropdown = QComboBox()
-        self.attr_dropdown.addItems(self.player.attributes.keys())
-        self.attr_dropdown.setStyleSheet(INPUT_STYLES['combo_box'])
-
-        add_button = QPushButton("➕ Adicionar")
+        add_button = QPushButton("🤖 Adicionar Missão")
         add_button.setStyleSheet(BUTTON_STYLES['primary'])
-        add_button.clicked.connect(self.handle_add_mission)
+        add_button.clicked.connect(self.handle_ai_add_mission)
 
         form_layout = QHBoxLayout()
         form_layout.addWidget(self.desc_input)
-        xp_label = QLabel("💎 XP:")
-        xp_label.setStyleSheet(f"color: {COLORS['text']}; font-weight: bold;")
-        attr_label = QLabel("🎯 Atributo:")
-        attr_label.setStyleSheet(f"color: {COLORS['text']}; font-weight: bold;")
-        
-        form_layout.addWidget(xp_label)
-        form_layout.addWidget(self.xp_input)
-        form_layout.addWidget(attr_label)
-        form_layout.addWidget(self.attr_dropdown)
         form_layout.addWidget(add_button)
         self.main_layout.addLayout(form_layout)
 
@@ -214,17 +197,15 @@ class MainWindow(QMainWindow):
             
             self.missions_layout.addWidget(mission_widget)
 
-    def handle_add_mission(self):
-        """Pega os dados do formulário, adiciona ao DB e atualiza a UI."""
+    def handle_ai_add_mission(self):
+        """Usa IA para calcular XP/atributo e adiciona missão automaticamente"""
         description = self.desc_input.text()
-        reward_xp = self.xp_input.value()
-        attribute_name = self.attr_dropdown.currentText()
-
         if description:
-            database.add_mission(description, reward_xp, attribute_name)
+            result = self.xp_calculator.calculate_xp_and_attribute(description)
+            database.add_mission(description, result['reward_xp'], result['attribute_name'])
             self.desc_input.clear()
             self.refresh_missions_list()
-            print(f"Missão adicionada: {description}")
+            print(f"Missão adicionada: {description} (+{result['reward_xp']} XP em {result['attribute_name']})")
 
     def handle_complete_mission(self, mission_id, reward_xp, attribute_name):
         """Completa a missão no DB, aplica o XP e atualiza a UI."""
@@ -236,6 +217,8 @@ class MainWindow(QMainWindow):
         """Deleta a missão do DB e atualiza a UI."""
         database.delete_mission(mission_id)
         self.refresh_missions_list()
+    
+
     
     def open_status_window(self):
         """Abre a janela de status geral"""
