@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/player.dart';
 import '../../core/models/attribute.dart';
+import '../../data/supabase_service.dart';
 import '../../widgets/floating_window.dart';
 import '../../widgets/draggable_panel.dart';
 import '../quests/quest_board_panel.dart';
 import '../quests/create_quest_panel.dart';
+import '../calendar/calendar_panel.dart';
 import 'radar_chart_widget.dart';
 
 final playerProvider = StateNotifierProvider<PlayerNotifier, Player>((ref) {
@@ -15,18 +17,26 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, Player>((ref) {
 
 class PlayerNotifier extends StateNotifier<Player> {
   PlayerNotifier()
-      : super(Player(
-          name: 'Victor',
-          attributes: Attribute.defaults('Victor'),
-        ));
+      : super(Player(name: 'Jogador', attributes: Attribute.defaults('Jogador')));
+
+  Future<void> loadFromSupabase() async {
+    var player = await SupabaseService.instance.fetchPlayer();
+    if (player == null) {
+      await SupabaseService.instance.initPlayer(state);
+    } else {
+      state = player;
+    }
+  }
 
   void updateAttribute(Attribute attr) {
     state = state.copyWithAttribute(attr);
+    SupabaseService.instance.upsertAttribute(attr);
   }
 }
 
 final _showQuestsProvider = StateProvider<bool>((ref) => false);
 final _showCreateProvider = StateProvider<bool>((ref) => false);
+final _showCalendarProvider = StateProvider<bool>((ref) => false);
 
 class DashboardPanel extends ConsumerWidget {
   const DashboardPanel({super.key});
@@ -36,6 +46,7 @@ class DashboardPanel extends ConsumerWidget {
     final player = ref.watch(playerProvider);
     final showQuests = ref.watch(_showQuestsProvider);
     final showCreate = ref.watch(_showCreateProvider);
+    final showCalendar = ref.watch(_showCalendarProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -59,6 +70,14 @@ class DashboardPanel extends ConsumerWidget {
               child: CreateQuestPanel(
                 onClose: () =>
                     ref.read(_showCreateProvider.notifier).state = false,
+              ),
+            ),
+          if (showCalendar)
+            DraggablePanel(
+              initialOffset: const Offset(360, 16),
+              child: CalendarPanel(
+                onClose: () =>
+                    ref.read(_showCalendarProvider.notifier).state = false,
               ),
             ),
         ],
@@ -146,7 +165,7 @@ class _DashboardContent extends ConsumerWidget {
                   ref.read(_showQuestsProvider.notifier).state = true,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: _GlowButton(
               label: '+ Nova',
@@ -154,7 +173,15 @@ class _DashboardContent extends ConsumerWidget {
                   ref.read(_showCreateProvider.notifier).state = true,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _GlowButton(
+              label: 'Cal',
+              onTap: () =>
+                  ref.read(_showCalendarProvider.notifier).state = true,
+            ),
+          ),
+          const SizedBox(width: 6),
           Expanded(
             child: _GlowButton(
               label: 'Stats',

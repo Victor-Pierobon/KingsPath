@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/quest.dart';
 import '../../core/utils/xp_calculator.dart';
+import '../../data/supabase_service.dart';
 import '../../widgets/floating_window.dart';
 import '../dashboard/dashboard_panel.dart';
 import '../../data/system_quests_data.dart';
@@ -14,17 +15,29 @@ final questsProvider = StateNotifierProvider<QuestsNotifier, List<Quest>>((ref) 
 class QuestsNotifier extends StateNotifier<List<Quest>> {
   QuestsNotifier() : super([]);
 
-  void addQuest(Quest quest) => state = [...state, quest];
+  Future<void> loadFromSupabase() async {
+    state = await SupabaseService.instance.fetchQuests();
+  }
+
+  void addQuest(Quest quest) {
+    state = [...state, quest];
+    SupabaseService.instance.insertQuest(quest);
+  }
 
   void completeQuest(String id) {
+    final completedAt = DateTime.now();
     state = state
-        .map((q) => q.id == id ? q.copyWith(status: QuestStatus.completed) : q)
+        .map((q) => q.id == id
+            ? q.copyWith(status: QuestStatus.completed, completedAt: completedAt)
+            : q)
         .toList();
+    SupabaseService.instance.updateQuestStatus(id, QuestStatus.completed, completedAt);
   }
 
   void addSystemQuest(Quest quest) {
     if (!state.any((q) => q.id == quest.id)) {
       state = [...state, quest];
+      SupabaseService.instance.insertQuest(quest);
     }
   }
 }

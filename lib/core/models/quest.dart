@@ -14,6 +14,7 @@ class Quest {
   final QuestRecurrence recurrence;
   final QuestStatus status;
   final DateTime createdAt;
+  final DateTime? completedAt;
   final bool isSystemQuest;
 
   const Quest({
@@ -26,12 +27,13 @@ class Quest {
     required this.recurrence,
     required this.status,
     required this.createdAt,
+    this.completedAt,
     this.isSystemQuest = false,
   });
 
   int get totalXp => xpPerAttribute.values.fold(0, (a, b) => a + b);
 
-  Quest copyWith({QuestStatus? status}) => Quest(
+  Quest copyWith({QuestStatus? status, DateTime? completedAt}) => Quest(
         id: id,
         title: title,
         description: description,
@@ -41,6 +43,7 @@ class Quest {
         recurrence: recurrence,
         status: status ?? this.status,
         createdAt: createdAt,
+        completedAt: completedAt ?? this.completedAt,
         isSystemQuest: isSystemQuest,
       );
 

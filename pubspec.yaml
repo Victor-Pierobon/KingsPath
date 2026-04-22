@@ -48,11 +48,11 @@ dependencies:
   # Desktop
   window_manager: ^0.3.9
 
-  # Mobile overlay
-  flutter_overlay_window: ^0.3.0
-
   # Notificações
   flutter_local_notifications: ^17.2.2
+
+  # Cloud
+  supabase_flutter: ^2.12.4
 
   # Utils
   uuid: ^4.4.0
