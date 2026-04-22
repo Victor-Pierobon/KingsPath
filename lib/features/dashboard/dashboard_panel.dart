@@ -30,7 +30,9 @@ class PlayerNotifier extends StateNotifier<Player> {
 
   void updateAttribute(Attribute attr) {
     state = state.copyWithAttribute(attr);
-    SupabaseService.instance.upsertAttribute(attr);
+    SupabaseService.instance
+        .saveAttribute(attr)
+        .catchError((e) => debugPrint('[Player] falha ao salvar atributo: $e'));
   }
 }
 
@@ -113,6 +115,10 @@ class _DashboardContent extends ConsumerWidget {
   }
 
   Widget _header(Player player) {
+    final info = player.archetypeInfo;
+    final label = info.label;
+    final icon = info.icon;
+    final color = info.color;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: const BoxDecoration(
@@ -144,12 +150,52 @@ class _DashboardContent extends ConsumerWidget {
                     letterSpacing: 1,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(icon, style: TextStyle(fontSize: 11, color: color)),
+                    const SizedBox(width: 4),
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    _archetypeBonusBadge(player, color),
+                  ],
+                ),
               ],
             ),
           ),
-          const Text('⚔', style: TextStyle(fontSize: 24)),
+          Text(icon, style: TextStyle(fontSize: 26, color: color)),
         ],
       ),
+    );
+  }
+
+  Widget _archetypeBonusBadge(Player player, Color archetypeColor) {
+    if (player.archetype == Archetype.equilibrado) return const SizedBox.shrink();
+    if (player.archetypeBonusUnlocked) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: archetypeColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: archetypeColor.withValues(alpha: 0.6), width: 0.5),
+        ),
+        child: Text(
+          '+5% XP',
+          style: TextStyle(color: archetypeColor, fontSize: 9, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+    return Text(
+      'Nv. ${player.archetypeLevel}/10',
+      style: TextStyle(color: archetypeColor.withValues(alpha: 0.6), fontSize: 10),
     );
   }
 

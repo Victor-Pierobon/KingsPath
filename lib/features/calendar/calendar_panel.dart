@@ -226,20 +226,37 @@ class _CalendarPanelState extends ConsumerState<CalendarPanel> {
                 const SizedBox(height: 8),
                 ...quests.map(
                   (q) => Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: Row(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('✓  ', style: TextStyle(color: AppColors.success, fontSize: 13)),
-                        Expanded(
-                          child: Text(
-                            q.title,
-                            style: const TextStyle(color: AppColors.text, fontSize: 13),
+                        Row(
+                          children: [
+                            const Text('✓  ', style: TextStyle(color: AppColors.success, fontSize: 13)),
+                            Expanded(
+                              child: Text(
+                                q.title,
+                                style: const TextStyle(color: AppColors.text, fontSize: 13),
+                              ),
+                            ),
+                            Text(
+                              '+${q.totalXp}xp',
+                              style: const TextStyle(color: AppColors.accent, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        if (q.reflection != null && q.reflection!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 20, top: 3),
+                            child: Text(
+                              '💭  ${q.reflection}',
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           ),
-                        ),
-                        Text(
-                          '+${q.totalXp}xp',
-                          style: const TextStyle(color: AppColors.accent, fontSize: 12),
-                        ),
                       ],
                     ),
                   ),

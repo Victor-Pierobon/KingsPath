@@ -21,23 +21,34 @@ class QuestsNotifier extends StateNotifier<List<Quest>> {
 
   void addQuest(Quest quest) {
     state = [...state, quest];
-    SupabaseService.instance.insertQuest(quest);
+    SupabaseService.instance
+        .insertQuest(quest)
+        .catchError((e) => debugPrint('[Quests] falha ao inserir quest: $e'));
   }
 
-  void completeQuest(String id) {
+  void completeQuest(String id, {String? reflection}) {
     final completedAt = DateTime.now();
     state = state
         .map((q) => q.id == id
-            ? q.copyWith(status: QuestStatus.completed, completedAt: completedAt)
+            ? q.copyWith(
+                status: QuestStatus.completed,
+                completedAt: completedAt,
+                reflection: reflection,
+              )
             : q)
         .toList();
-    SupabaseService.instance.updateQuestStatus(id, QuestStatus.completed, completedAt);
+    SupabaseService.instance
+        .updateQuestStatus(id, QuestStatus.completed, completedAt,
+            reflection: reflection)
+        .catchError((e) => debugPrint('[Quests] falha ao completar quest: $e'));
   }
 
   void addSystemQuest(Quest quest) {
     if (!state.any((q) => q.id == quest.id)) {
       state = [...state, quest];
-      SupabaseService.instance.insertQuest(quest);
+      SupabaseService.instance
+          .insertQuest(quest)
+          .catchError((e) => debugPrint('[Quests] falha ao inserir system quest: $e'));
     }
   }
 }
@@ -141,7 +152,7 @@ class QuestBoardPanel extends ConsumerWidget {
     final quest = systemQuests[idx];
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -163,13 +174,13 @@ class QuestBoardPanel extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Ignorar', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () {
               ref.read(questsProvider.notifier).addSystemQuest(quest);
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: const Text('Aceitar',
                 style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
@@ -210,7 +221,7 @@ class _QuestCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               _ActionButton(
-                label: 'Concluir',
+                label: '✓ Concluir',
                 color: AppColors.success,
                 onTap: () => _complete(context, ref),
               ),
@@ -228,7 +239,82 @@ class _QuestCard extends ConsumerWidget {
   }
 
   void _complete(BuildContext context, WidgetRef ref) {
-    ref.read(questsProvider.notifier).completeQuest(quest.id);
+    final reflectionCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.accent),
+        ),
+        title: Text(
+          quest.title,
+          style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '+${applyDifficulty(quest.totalXp, quest.difficulty)} XP total',
+              style: const TextStyle(color: AppColors.accent, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'O que você aprendeu? (opcional)',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: reflectionCtrl,
+              maxLines: 3,
+              style: const TextStyle(color: AppColors.text, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Reflexão, insight, observação...',
+                hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12),
+                filled: true,
+                fillColor: Colors.black26,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: AppColors.accent, width: 0.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: AppColors.accent.withValues(alpha: 0.4), width: 0.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: AppColors.accent, width: 1),
+                ),
+                contentPadding: const EdgeInsets.all(10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () {
+              final reflection = reflectionCtrl.text.trim().isEmpty
+                  ? null
+                  : reflectionCtrl.text.trim();
+              Navigator.pop(dialogContext);
+              _applyCompletion(context, ref, reflection);
+            },
+            child: const Text('CONCLUIR',
+                style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyCompletion(BuildContext context, WidgetRef ref, String? reflection) {
+    ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection);
 
     final playerNotifier = ref.read(playerProvider.notifier);
     final player = ref.read(playerProvider);
@@ -237,7 +323,9 @@ class _QuestCard extends ConsumerWidget {
     for (final entry in quest.xpPerAttribute.entries) {
       final attr = player.attribute(entry.key);
       if (attr == null) continue;
-      final result = addXp(attr, entry.value);
+      final base = applyDifficulty(entry.value, quest.difficulty);
+      final xp = (base * player.xpBonusFor(entry.key)).round();
+      final result = addXp(attr, xp);
       playerNotifier.updateAttribute(result.attribute);
       if (result.leveledUp) {
         levelUps.add('${attr.name} ${result.oldLevel} → ${result.attribute.level}');
@@ -247,7 +335,7 @@ class _QuestCard extends ConsumerWidget {
     if (levelUps.isNotEmpty && context.mounted) {
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -261,7 +349,7 @@ class _QuestCard extends ConsumerWidget {
               style: const TextStyle(color: AppColors.text, fontSize: 16)),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('OK',
                   style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
             ),

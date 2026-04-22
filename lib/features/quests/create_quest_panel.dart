@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/quest.dart';
+import '../../core/utils/xp_calculator.dart';
 import '../../widgets/floating_window.dart';
 import 'quest_board_panel.dart';
 
@@ -30,15 +31,16 @@ class CreateQuestPanel extends ConsumerStatefulWidget {
 class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  final _xpCtrl = TextEditingController(text: '50');
   final Set<String> _selected = {};
   QuestDifficulty _difficulty = QuestDifficulty.medio;
+  int _baseXp = 50;
+
+  static const _xpPresets = [25, 50, 100, 250, 500];
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
-    _xpCtrl.dispose();
     super.dispose();
   }
 
@@ -62,13 +64,17 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
             const SizedBox(height: 8),
             _attributeChips(),
             const SizedBox(height: 12),
-            _field('XP por atributo', _xpCtrl,
-                keyboardType: TextInputType.number),
+            const Text('XP base por atributo',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            const SizedBox(height: 8),
+            _xpPresetChips(),
             const SizedBox(height: 12),
             const Text('Dificuldade',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             const SizedBox(height: 8),
             _difficultyChips(),
+            const SizedBox(height: 12),
+            _xpPreview(),
             const SizedBox(height: 20),
             _createButton(),
           ],
@@ -173,6 +179,58 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
     );
   }
 
+  Widget _xpPresetChips() {
+    return Wrap(
+      spacing: 6,
+      children: _xpPresets.map((xp) {
+        final selected = _baseXp == xp;
+        return GestureDetector(
+          onTap: () => setState(() => _baseXp = xp),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.accent.withValues(alpha: 0.2) : Colors.transparent,
+              border: Border.all(
+                color: selected ? AppColors.accent : AppColors.accent.withValues(alpha: 0.3),
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$xp',
+              style: TextStyle(
+                color: selected ? AppColors.accent : AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _xpPreview() {
+    final finalXp = applyDifficulty(_baseXp, _difficulty);
+    final multiplier = difficultyMultiplier(_difficulty);
+    final multiplierStr = multiplier == multiplier.truncateToDouble()
+        ? '${multiplier.toInt()}x'
+        : '${multiplier}x';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        '$_baseXp × $multiplierStr = $finalXp XP por atributo',
+        style: const TextStyle(color: AppColors.accent, fontSize: 13),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   Widget _difficultyChips() {
     final labels = {
       QuestDifficulty.facil: 'Fácil',
@@ -249,12 +307,11 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
       );
       return;
     }
-    final xp = int.tryParse(_xpCtrl.text) ?? 50;
     final quest = Quest(
       id: const Uuid().v4(),
       title: title,
       description: _descCtrl.text.trim(),
-      xpPerAttribute: {for (final a in _selected) a: xp},
+      xpPerAttribute: {for (final a in _selected) a: _baseXp},
       difficulty: _difficulty,
       recurrence: QuestRecurrence.none,
       status: QuestStatus.pending,

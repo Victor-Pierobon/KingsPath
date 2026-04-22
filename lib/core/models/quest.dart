@@ -15,6 +15,7 @@ class Quest {
   final QuestStatus status;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final String? reflection;
   final bool isSystemQuest;
 
   const Quest({
@@ -28,12 +29,13 @@ class Quest {
     required this.status,
     required this.createdAt,
     this.completedAt,
+    this.reflection,
     this.isSystemQuest = false,
   });
 
   int get totalXp => xpPerAttribute.values.fold(0, (a, b) => a + b);
 
-  Quest copyWith({QuestStatus? status, DateTime? completedAt}) => Quest(
+  Quest copyWith({QuestStatus? status, DateTime? completedAt, String? reflection}) => Quest(
         id: id,
         title: title,
         description: description,
@@ -44,6 +46,7 @@ class Quest {
         status: status ?? this.status,
         createdAt: createdAt,
         completedAt: completedAt ?? this.completedAt,
+        reflection: reflection ?? this.reflection,
         isSystemQuest: isSystemQuest,
       );
 
