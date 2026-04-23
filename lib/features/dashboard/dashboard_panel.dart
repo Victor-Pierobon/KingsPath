@@ -28,11 +28,9 @@ class PlayerNotifier extends StateNotifier<Player> {
     }
   }
 
-  void updateAttribute(Attribute attr) {
+  Future<void> updateAttribute(Attribute attr) async {
     state = state.copyWithAttribute(attr);
-    SupabaseService.instance
-        .saveAttribute(attr)
-        .catchError((e) => debugPrint('[Player] falha ao salvar atributo: $e'));
+    await SupabaseService.instance.saveAttribute(attr);
   }
 }
 

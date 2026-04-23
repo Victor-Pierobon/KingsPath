@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -7,6 +8,13 @@ import '../../data/supabase_service.dart';
 import '../../widgets/floating_window.dart';
 import '../dashboard/dashboard_panel.dart';
 import '../../data/system_quests_data.dart';
+
+void _showSaveError(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content: Text('Falha ao salvar. Verifique sua conexão.'),
+    backgroundColor: Color(0xFFEF5350),
+  ));
+}
 
 final questsProvider = StateNotifierProvider<QuestsNotifier, List<Quest>>((ref) {
   return QuestsNotifier();
@@ -19,14 +27,12 @@ class QuestsNotifier extends StateNotifier<List<Quest>> {
     state = await SupabaseService.instance.fetchQuests();
   }
 
-  void addQuest(Quest quest) {
+  Future<void> addQuest(Quest quest) async {
     state = [...state, quest];
-    SupabaseService.instance
-        .insertQuest(quest)
-        .catchError((e) => debugPrint('[Quests] falha ao inserir quest: $e'));
+    await SupabaseService.instance.insertQuest(quest);
   }
 
-  void completeQuest(String id, {String? reflection}) {
+  Future<void> completeQuest(String id, {String? reflection}) async {
     final completedAt = DateTime.now();
     state = state
         .map((q) => q.id == id
@@ -37,18 +43,15 @@ class QuestsNotifier extends StateNotifier<List<Quest>> {
               )
             : q)
         .toList();
-    SupabaseService.instance
-        .updateQuestStatus(id, QuestStatus.completed, completedAt,
-            reflection: reflection)
-        .catchError((e) => debugPrint('[Quests] falha ao completar quest: $e'));
+    await SupabaseService.instance.updateQuestStatus(
+        id, QuestStatus.completed, completedAt,
+        reflection: reflection);
   }
 
-  void addSystemQuest(Quest quest) {
+  Future<void> addSystemQuest(Quest quest) async {
     if (!state.any((q) => q.id == quest.id)) {
       state = [...state, quest];
-      SupabaseService.instance
-          .insertQuest(quest)
-          .catchError((e) => debugPrint('[Quests] falha ao inserir system quest: $e'));
+      await SupabaseService.instance.insertQuest(quest);
     }
   }
 }
@@ -193,9 +196,13 @@ class QuestBoardPanel extends ConsumerWidget {
             child: const Text('Ignorar', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(questsProvider.notifier).addSystemQuest(quest);
+            onPressed: () async {
               Navigator.pop(dialogContext);
+              try {
+                await ref.read(questsProvider.notifier).addSystemQuest(quest);
+              } catch (e) {
+                if (context.mounted) _showSaveError(context);
+              }
             },
             child: const Text('Aceitar',
                 style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
@@ -313,12 +320,12 @@ class _QuestCard extends ConsumerWidget {
             child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final reflection = reflectionCtrl.text.trim().isEmpty
                   ? null
                   : reflectionCtrl.text.trim();
               Navigator.pop(dialogContext);
-              _applyCompletion(context, ref, reflection);
+              await _applyCompletion(context, ref, reflection);
             },
             child: const Text('CONCLUIR',
                 style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
@@ -328,9 +335,7 @@ class _QuestCard extends ConsumerWidget {
     );
   }
 
-  void _applyCompletion(BuildContext context, WidgetRef ref, String? reflection) {
-    ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection);
-
+  Future<void> _applyCompletion(BuildContext context, WidgetRef ref, String? reflection) async {
     final playerNotifier = ref.read(playerProvider.notifier);
     final player = ref.read(playerProvider);
     final levelUps = <String>[];
@@ -341,10 +346,17 @@ class _QuestCard extends ConsumerWidget {
       final base = applyDifficulty(entry.value, quest.difficulty);
       final xp = (base * player.xpBonusFor(entry.key)).round();
       final result = addXp(attr, xp);
-      playerNotifier.updateAttribute(result.attribute);
+      unawaited(playerNotifier.updateAttribute(result.attribute));
       if (result.leveledUp) {
         levelUps.add('${attr.name} ${result.oldLevel} → ${result.attribute.level}');
       }
+    }
+
+    try {
+      await ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection);
+    } catch (e) {
+      if (context.mounted) _showSaveError(context);
+      return;
     }
 
     if (levelUps.isNotEmpty && context.mounted) {
@@ -373,6 +385,7 @@ class _QuestCard extends ConsumerWidget {
       );
     }
   }
+
 }
 
 class _ActionButton extends StatelessWidget {

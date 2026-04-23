@@ -297,7 +297,7 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
     );
   }
 
-  void _create() {
+  Future<void> _create() async {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty || _selected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +317,16 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
       status: QuestStatus.pending,
       createdAt: DateTime.now(),
     );
-    ref.read(questsProvider.notifier).addQuest(quest);
-    widget.onClose();
+    try {
+      await ref.read(questsProvider.notifier).addQuest(quest);
+      widget.onClose();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Falha ao salvar quest. Verifique sua conexão.'),
+          backgroundColor: Color(0xFFEF5350),
+        ));
+      }
+    }
   }
 }
