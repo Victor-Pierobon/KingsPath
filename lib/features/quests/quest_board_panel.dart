@@ -55,8 +55,9 @@ class QuestsNotifier extends StateNotifier<List<Quest>> {
 
 class QuestBoardPanel extends ConsumerWidget {
   final VoidCallback onClose;
+  final bool mobileMode;
 
-  const QuestBoardPanel({super.key, required this.onClose});
+  const QuestBoardPanel({super.key, required this.onClose, this.mobileMode = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,32 +65,46 @@ class QuestBoardPanel extends ConsumerWidget {
         .where((q) => q.status == QuestStatus.pending)
         .toList();
 
-    return FloatingWindow(
-      width: 340,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _header(),
-          if (quests.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Text(
-                'Nenhuma quest pendente.\nCrie uma ou sugira uma do dia.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-              ),
-            )
-          else
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
-              child: ListView.separated(
+    Widget list = quests.isEmpty
+        ? const Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              'Nenhuma quest pendente.\nCrie uma ou sugira uma do dia.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+            ),
+          )
+        : ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(12),
+            itemCount: quests.length,
+            separatorBuilder: (ctx, i) => const SizedBox(height: 8),
+            itemBuilder: (context, i) => _QuestCard(quest: quests[i]),
+          );
+
+    if (!mobileMode) {
+      list = ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 360),
+        child: quests.isEmpty
+            ? list
+            : ListView.separated(
                 shrinkWrap: true,
                 padding: const EdgeInsets.all(12),
                 itemCount: quests.length,
                 separatorBuilder: (ctx, i) => const SizedBox(height: 8),
                 itemBuilder: (context, i) => _QuestCard(quest: quests[i]),
               ),
-            ),
+      );
+    }
+
+    return FloatingWindow(
+      width: mobileMode ? null : 340,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _header(),
+          list,
           _suggestButton(context, ref),
           const SizedBox(height: 12),
         ],

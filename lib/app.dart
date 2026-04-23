@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_colors.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/dashboard/dashboard_panel.dart';
+import 'features/mobile/mobile_home.dart';
 import 'features/quests/quest_board_panel.dart';
 
 class KingsPathApp extends StatelessWidget {
@@ -97,6 +99,10 @@ class _AppInitializerState extends ConsumerState<_AppInitializer>
     if (mounted) setState(() => _loading = false);
   }
 
+  bool get _isMobile =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -136,6 +142,6 @@ class _AppInitializerState extends ConsumerState<_AppInitializer>
         ),
       );
     }
-    return const DashboardPanel();
+    return _isMobile ? const MobileHome() : const DashboardPanel();
   }
 }

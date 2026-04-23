@@ -13,8 +13,9 @@ const _weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 class CalendarPanel extends ConsumerStatefulWidget {
   final VoidCallback onClose;
+  final bool mobileMode;
 
-  const CalendarPanel({super.key, required this.onClose});
+  const CalendarPanel({super.key, required this.onClose, this.mobileMode = false});
 
   @override
   ConsumerState<CalendarPanel> createState() => _CalendarPanelState();
@@ -50,11 +51,11 @@ class _CalendarPanelState extends ConsumerState<CalendarPanel> {
     final selectedQuests = _selectedDay != null ? (byDay[_selectedDay] ?? []) : <Quest>[];
 
     return FloatingWindow(
-      width: 380,
+      width: widget.mobileMode ? null : 380,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildHeader(),
+          _buildHeader(widget.mobileMode),
           _buildMonthNav(),
           _buildWeekdayLabels(),
           _buildGrid(byDay),
@@ -70,7 +71,7 @@ class _CalendarPanelState extends ConsumerState<CalendarPanel> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool mobileMode) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
       decoration: const BoxDecoration(
@@ -89,10 +90,11 @@ class _CalendarPanelState extends ConsumerState<CalendarPanel> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close, color: AppColors.textMuted, size: 18),
-            onPressed: widget.onClose,
-          ),
+          if (!mobileMode)
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.textMuted, size: 18),
+              onPressed: widget.onClose,
+            ),
         ],
       ),
     );
