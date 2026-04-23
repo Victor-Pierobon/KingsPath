@@ -17,22 +17,25 @@ Sistema gamificado de progresso pessoal estilo Solo Leveling, com arquétipos Ju
 - **Arquétipos** — Guerreiro (Força+Destreza), Mago (Inteligência+Sabedoria), Rei (Carisma+Relacionamento), Equilibrado
 - Calculado dinamicamente, exibido no header com cor e ícone próprios
 - **Bônus de Arquétipo** — ao atingir nível 10 no arquétipo, +5% XP nos atributos primários
-  - Mago: +5% XP em inteligência/sabedoria
-  - Guerreiro: +5% XP em força/destreza
-  - Rei: +5% XP em carisma/relacionamento
-  - Progresso visível no header (ex: "Nível 7/10 para bônus")
+- Progresso visível no header (ex: "Nível 7/10 para bônus" → "+5% XP" ao desbloquear)
 
 ### Interface
 - **Radar Chart** dos atributos
 - **Calendário com heatmap** de XP diário — intensidade da célula escala com XP ganho no dia
 - **Diário do Herói** — campo "O que aprendi?" ao concluir quest, reflexões visíveis no calendário
-- **Painéis flutuantes e arrastáveis** — janela overlay transparente sem borda
+- **Painéis flutuantes e arrastáveis** — janela overlay transparente sem borda, always-on-top
 - **Tela de login/cadastro** integrada ao visual do app
 
 ### Infraestrutura
-- **Supabase** — persistência na nuvem, sync entre Linux desktop e Android
+- **Supabase** — PostgreSQL na nuvem, sync entre Linux desktop e Android
 - **RLS** — Row Level Security, cada usuário vê apenas seus próprios dados
 - **Riverpod** — gerenciamento de estado reativo
+- **Auto-refresh** — app recarrega dados do Supabase silenciosamente ao retomar o primeiro plano (lifecycle observer no Android; foco de janela no Linux)
+
+### Build e Distribuição
+- **Build Linux release** — `flutter build linux --release` (bundle nativo, sem Electron)
+- **GitHub Actions** — CI automático: push de tag `vX.Y.Z` → builda APK Android + bundle Linux → publica em GitHub Releases
+- **Pacotes limpos** — removidos `google_sign_in`, `googleapis`, `googleapis_auth`, `flutter_local_notifications` (não utilizados, causavam problemas no build Android)
 
 ---
 

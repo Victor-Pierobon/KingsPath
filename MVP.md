@@ -1,134 +1,124 @@
-# Kings Path — MVP Specification
+# Kings Path — Especificação Técnica
 
 > App de gamificação de vida diária inspirado em Solo Leveling.  
-> Interface em janelas flutuantes, cross-platform (Android + Windows/Mac/Linux).
+> Interface em painéis flutuantes e arrastáveis. Cross-platform: Linux desktop + Android.
 
 ---
 
-## 1. Stack Tecnológica
+## 1. Stack
 
 | Camada | Tecnologia | Motivo |
 |---|---|---|
-| Framework | **Flutter** | Único codebase para Android, iOS, Windows, macOS, Linux |
-| Banco de dados | **Google Sheets API v4** | Zero infraestrutura, uso pessoal, editável manualmente |
-| Auth | **Google Sign-In** (OAuth2) | Necessário para acessar o Sheets da conta do usuário |
+| Framework | **Flutter 3.41 / Dart 3.11** | Um codebase para Linux e Android |
+| Banco de dados | **Supabase (PostgreSQL)** | Gratuito, sync em tempo real, RLS por usuário |
+| Auth | **Email + senha** via Supabase Auth | Sem dependências externas |
 | State | **Riverpod** | Simples, reativo, sem boilerplate excessivo |
 | UI flutuante desktop | `window_manager` | Janela frameless, always-on-top, transparente |
-| UI flutuante mobile | `flutter_overlay_window` | Overlay real sobre outros apps (Android) |
+| Charts | `fl_chart` | Radar chart dos atributos |
+| CI/CD | **GitHub Actions** | Build automático de APK e bundle Linux por tag |
 
-### Por que não web/Electron/Tauri?
-- Flutter gera **binários nativos reais** — sem browser embutido, sem overhead
-- `flutter_overlay_window` permite janelas flutuantes reais no Android (como widgets do SO)
-- `window_manager` no desktop permite janela sem borda com transparência e always-on-top
+### Por que Supabase e não Google Sheets?
+- Auth próprio — sem OAuth2 do Google, sem `google-services.json`
+- PostgreSQL real com Row Level Security: cada usuário vê apenas seus dados
+- Funciona offline-first com reconexão transparente
+- Gratuito no tier pessoal (500 MB, 50k usuários)
 
 ---
 
-## 2. Conceito Visual — Janelas Flutuantes
+## 2. Conceito Visual
 
-Inspirado no HUD de Solo Leveling: **painéis semi-transparentes** que surgem sobre a tela, não uma interface fullscreen convencional.
+Painéis semi-transparentes estilo HUD de Solo Leveling, flutuando sobre o desktop.
 
 ```
 ╔══════════════════════════════════╗
-║  ⚔  NOVA QUEST DISPONÍVEL        ║  ← painel flutuante (overlay)
-║─────────────────────────────────║
-║  [Secundária] Leitura Rápida     ║
-║  +15 XP  Inteligência            ║
-║                                  ║
-║       [Aceitar]  [Ignorar]       ║
+║  VICTOR   Rank D  •  Lv. 12      ║
+║  ✦ MAGO   Nv. 7/10               ║
+║──────────────────────────────────║
+║         Sabedoria                 ║
+║            /\                     ║
+║  Carisma  /  \  Inteligência      ║
+║          / ●  \                   ║
+║  Relac. <      > Força            ║
+║          \    /                   ║
+║           \  /                    ║
+║         Destreza                  ║
+║──────────────────────────────────║
+║  [Quests]  [+ Nova]  [Cal] [Stats]║
 ╚══════════════════════════════════╝
 ```
 
-```
-╔══════════════════════════════╗
-║  VICTOR  •  Rank E  •  Lv.1  ║  ← painel principal (sempre visível)
-║──────────────────────────────║
-║         Sabedoria             ║
-║            /\                 ║
-║  Carisma  /  \  Inteligência  ║  ← gráfico de radar
-║          /    \               ║
-║  Relac. <  ●   > Força        ║     (RadarChart - fl_chart)
-║          \    /               ║
-║           \  /                ║
-║         Destreza              ║
-║──────────────────────────────║
-║  [Quests]  [+Criar]  [Stats] ║
-╚══════════════════════════════╝
-```
-
-- Paleta: fundo `#0A0A1A` (azul-noite), texto `#E0E8FF`, destaque `#7B5CF0` (roxo), XP `#F0C040` (dourado)
-- Bordas com glow roxo/azul (`BoxDecoration` com `BoxShadow`)
-- Fonte: `Rajdhani` ou `Exo 2` (Google Fonts)
-- Todas as janelas são **arrastáveis** e **redimensionáveis**
+- **Paleta:** fundo `#0A0A1A` (azul-noite), texto `#E0E8FF`, destaque `#7B5CF0` (roxo), dourado `#F0C040`
+- **Bordas** com glow roxo (`BoxShadow`)
+- **Fonte:** Rajdhani (Google Fonts)
+- Todos os painéis são **arrastáveis** via `DraggablePanel`
 
 ---
 
 ## 3. Atributos
 
-| Atributo | Ícone | Atividades Exemplares |
+| ID | Nome | Representa |
 |---|---|---|
-| **Força** | ⚡ | Musculação, crossfit, caminhada pesada, esporte de contato |
-| **Inteligência** | 📘 | Programar, ler artigo técnico, resolver lógica, curso online |
-| **Sabedoria** | 🌿 | Journaling, meditação, terapia, reflexão, leitura filosófica |
-| **Destreza** | 💨 | Corrida, ciclismo, HIIT, yoga, parkour, agilidade |
-| **Carisma** | 👁 | Discurso público, etiqueta, se arrumar bem, storytelling |
-| **Relacionamento** | 🤝 | Encontro, ligar para amigo, evento social, fazer novo amigo |
+| `forca` | ⚡ Força | Musculação, disciplina corporal, esporte |
+| `inteligencia` | 📘 Inteligência | Programação, estudo técnico, cursos |
+| `sabedoria` | 🌿 Sabedoria | Journaling, meditação, reflexão, terapia |
+| `destreza` | 💨 Destreza | Corrida, ciclismo, HIIT, agilidade |
+| `carisma` | 👁 Carisma | Comunicação, liderança, presença |
+| `relacionamento` | 🤝 Relacionamento | Vínculos, networking, conexões sociais |
 
 ---
 
-## 4. Sistema de Level e XP
+## 4. Arquétipos Junguianos
 
-### Fórmula de XP por nível (por atributo)
+Calculados dinamicamente com base nos atributos mais desenvolvidos.
+
+| Arquétipo | Atributos primários | Ícone | Cor |
+|---|---|---|---|
+| ⚔ Guerreiro | Força + Destreza | `⚔` | Vermelho `#EF5350` |
+| ✦ Mago | Inteligência + Sabedoria | `✦` | Roxo `#7B5CF0` |
+| ♛ Rei | Carisma + Relacionamento | `♛` | Dourado `#F0C040` |
+| ◈ Equilibrado | Distribuição uniforme | `◈` | Verde `#4CAF50` |
+
+**Regra de cálculo:** se a diferença entre o maior e o menor par for < 2 níveis → Equilibrado.
+
+**Bônus de Arquétipo:** ao atingir média de **nível 10** nos atributos primários, desbloqueio de **+5% XP** permanente nesses atributos. Progresso exibido no header como "Nv. X/10" → "+5% XP" ao desbloquear.
+
+---
+
+## 5. Sistema de XP e Progressão
+
+### Fórmula por nível (por atributo)
 
 ```
-XP_para_proximo_nivel = 100 + 40 * n + 10 * n²
+XP para próximo nível = 80 + 20L + 15L²
 ```
 
-onde `n` = nível atual do atributo.
+onde `L` = nível atual do atributo.
 
-A curva é quadrática suave: nos primeiros níveis o crescimento é quase linear (o fator `100` domina), e vai curvando gradualmente sem saltos bruscos nem aceleração exponencial.
-
-| Nível atual (n) | XP para o próximo | XP acumulado total |
+| Nível (L) | XP para subir | XP acumulado |
 |---|---|---|
-| 1 | 150 | 150 |
-| 2 | 220 | 370 |
-| 3 | 310 | 680 |
-| 4 | 420 | 1.100 |
-| 5 | 550 | 1.650 |
-| 6 | 700 | 2.350 |
-| 7 | 870 | 3.220 |
-| 8 | 1.060 | 4.280 |
-| 9 | 1.270 | 5.550 |
-| 10 | 1.500 | 7.050 |
-| 15 | 2.650 | 18.600 |
-| 20 | 4.100 | 38.700 |
-| 30 | 7.300 | 108.150 |
-| 50 | 17.100 | — |
+| 1 | 115 | 115 |
+| 2 | 180 | 295 |
+| 3 | 275 | 570 |
+| 5 | 575 | 1.680 |
+| 10 | 1.580 | 8.330 |
+| 20 | 6.080 | 43.330 |
 
-**Calibração com quests do dia:** fazendo 2–3 quests diárias (~150 XP/dia por atributo):
-- Lv. 1 → 2 em ~1 dia
-- Lv. 5 → 6 em ~4 dias
-- Lv. 10 → 11 em ~10 dias
-- Lv. 20 → 21 em ~27 dias
+### Multiplicadores de dificuldade
 
-### Nível Global (nível do jogador)
-
-```
-nivel_global = (soma dos níveis dos 6 atributos) - 5
-```
-
-> Começa em **nível 1** quando todos os atributos estão em nível 1 (6 − 5 = 1).  
-> A subtração é 5, não 6 — com -6 o ponto de partida seria nível 0.
-
-Exemplos de progressão:
-| Situação | Soma dos atributos | Nível global |
+| Dificuldade | Multiplicador | Uso recomendado |
 |---|---|---|
-| Início (todos Lv.1) | 6 | **1** |
-| Atributos médios Lv.5 | 30 | **25** |
-| Atributos médios Lv.10 | 60 | **55** |
-| Atributos médios Lv.20 | 120 | **115** |
+| Fácil | 1× | Hábitos pequenos, tarefas rotineiras |
+| Médio | 1,5× | Metas moderadas, esforço consistente |
+| Difícil | 3× | Desafios reais, projetos importantes |
+| Épico | 7× | Conquistas excepcionais, marcos de vida |
 
-### Rank Global (baseado no nível global)
-| Rank | Nível global |
+### Nível Global e Rank
+
+```
+Nível Global = (soma dos níveis dos 6 atributos) − 5
+```
+
+| Rank | Nível Global |
 |---|---|
 | E | 1–9 |
 | D | 10–24 |
@@ -137,328 +127,185 @@ Exemplos de progressão:
 | A | 90–149 |
 | S | 150+ |
 
-### XP por tipo de quest
-| Tipo | XP base |
-|---|---|
-| Quest principal (criada pelo usuário) | 50–500 (definido na criação) |
-| Quest secundária (sugerida pelo sistema) | 15–75 |
-| Quest diária automática | 30 |
-
 ---
 
-## 5. Sistema de Quests
+## 6. Sistema de Quests
 
 ### Quest Principal (criada pelo usuário)
-```
-Campos:
-- Título (ex: "Completar módulo de algoritmos")
-- Descrição
-- Atributos afetados: [ ] Força  [ ] Inteligência  [ ] ...  (multi-select)
-- XP por atributo (pode ser diferente por atributo)
+- Título livre
+- Atributos afetados (multi-select via chips)
+- XP base: presets de 25 / 50 / 100 / 250 / 500
 - Dificuldade: Fácil / Médio / Difícil / Épico
-- Prazo (opcional)
-- Recorrente: Não / Diária / Semanal
-```
+- Preview em tempo real: `50 × 1.5x = 75 XP`
 
-**Exemplo:**
-```
-Título: Correr 5km e ouvir podcast
-Atributos: Destreza (+60 XP), Inteligência (+20 XP)
-Dificuldade: Médio
-```
+### Quest do Sistema (sugerida)
+- Sorteada do banco pré-programado em `system_quests_data.dart`
+- Aceitar → adiciona à lista de pendentes
+- Ignorar → descarta sem penalidade
 
-### Quest Secundária (sugerida pelo sistema)
-Aparece automaticamente quando:
-- O usuário abre o app sem quests pendentes
-- Botão "Quests do Dia" é acionado
-- Notificação diária às 08h
+### Diário do Herói
+Ao concluir qualquer quest, um diálogo opcional pergunta:
+> "O que você aprendeu?"
 
-O sistema sorteia quests do banco pré-programado abaixo.
+A reflexão fica vinculada à data da conclusão e é exibida no calendário ao clicar no dia.
 
 ---
 
-## 6. Banco de Quests Secundárias Pré-Programadas
+## 7. Banco de Dados (Supabase)
 
-### Força ⚡
-- Fazer 20 flexões agora mesmo (25 XP)
-- 30 minutos de caminhada (30 XP)
-- 1 hora de academia (60 XP)
-- Subir escadas em vez de elevador por um dia (20 XP)
+### Tabela `profile`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | uuid PK | = `auth.uid()` |
+| `name` | text | Nome do jogador |
 
-### Inteligência 📘
-- Ler 1 capítulo de um livro técnico (30 XP)
-- Resolver 1 exercício de lógica ou algoritmo (25 XP)
-- Assistir 1 aula de um curso online (40 XP)
-- Ler um artigo sobre um tema novo (20 XP)
-- Aprender 10 palavras em outro idioma (20 XP)
+### Tabela `attributes`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | text | `forca`, `inteligencia`, etc. |
+| `user_id` | uuid FK | Referência ao profile |
+| `level` | int | Nível atual |
+| `current_xp` | int | XP dentro do nível atual |
 
-### Sabedoria 🌿
-- Escrever 10 minutos no diário (25 XP)
-- Meditar por 10 minutos (25 XP)
-- Refletir sobre uma decisão difícil recente (30 XP)
-- Ler um trecho de filosofia ou estoicismo (20 XP)
-- Identificar 3 coisas pelas quais é grato hoje (15 XP)
+### Tabela `quests`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | uuid PK | Gerado no cliente |
+| `user_id` | uuid FK | Dono da quest |
+| `title` | text | Título |
+| `xp_per_attribute` | jsonb | `{"forca": 100, "destreza": 50}` |
+| `difficulty` | text | `facil / medio / dificil / epico` |
+| `status` | text | `pending / completed` |
+| `completed_at` | timestamptz | Data de conclusão |
+| `reflection` | text | Entrada do Diário do Herói |
 
-### Destreza 💨
-- Correr 3km no menor tempo possível (50 XP)
-- 15 minutos de HIIT (45 XP)
-- Sessão de alongamento / yoga de 20 minutos (25 XP)
-- Pular corda por 10 minutos (30 XP)
-
-### Carisma 👁
-- Gravar um vídeo de 2 minutos falando sobre algo que domina (40 XP)
-- Praticar uma abertura de conversa com um desconhecido (35 XP)
-- Pesquisar e aplicar 1 regra de etiqueta nova (20 XP)
-- Se arrumar completamente mesmo sem sair de casa (15 XP)
-- Escrever um post ou comentário público sobre algo relevante (25 XP)
-
-### Relacionamento 🤝
-- Ligar (não mensagem) para um amigo que não fala há semanas (40 XP)
-- Marcar um encontro social (presencial) (50 XP)
-- Enviar uma mensagem genuína de incentivo a alguém (15 XP)
-- Conhecer alguém novo (online ou presencial) (45 XP)
-- Fazer algo inesperado e gentil por alguém próximo (30 XP)
+**Row Level Security:** todas as tabelas têm políticas `using (auth.uid() = user_id)`.
 
 ---
 
-## 7. Estrutura do Google Sheets (banco de dados)
+## 8. Painéis (todos flutuantes e arrastáveis)
 
-O app cria automaticamente a planilha na primeira execução.
+### Painel Principal
+- Header: nome, rank, nível global, arquétipo + badge de bônus
+- Radar chart dos 6 atributos
+- Botões: Quests / + Nova / Cal / Stats
 
-### Aba `stats`
-| player_name | attribute | level | current_xp | total_xp_earned |
-|---|---|---|---|---|
-| Victor | forca | 4 | 230 | 630 |
-| Victor | inteligencia | 7 | 120 | 2620 |
-| ... | | | | |
-
-### Aba `quests`
-| id | title | description | attributes | xp_per_attribute | difficulty | due_date | recurrence | status | created_at |
-|---|---|---|---|---|---|---|---|---|---|
-| q001 | Correr 5km | ... | destreza,inteligencia | 60,20 | medio | 2026-04-05 | none | pending | 2026-04-03 |
-
-- `attributes`: separado por vírgula  
-- `xp_per_attribute`: XP correspondente, na mesma ordem  
-- `status`: `pending` / `completed` / `failed` / `skipped`
-
-### Aba `history`
-| quest_id | title | completed_at | xp_awarded | attributes_leveled_up |
-|---|---|---|---|---|
-| q001 | Correr 5km | 2026-04-03T14:22 | destreza:60,inteligencia:20 | destreza |
-
-### Aba `system_quests`
-Tabela estática das quests secundárias pré-programadas (seção 6).  
-Pode ser editada manualmente no Sheets para adicionar quests personalizadas.
-
-| id | title | attribute | xp | category |
-|---|---|---|---|---|
-| sq001 | Fazer 20 flexões agora mesmo | forca | 25 | daily |
-
----
-
-## 8. Telas / Painéis (todos flutuantes)
-
-### 8.1 Painel Principal (sempre visível)
-- Status do jogador: nome, rank e nível global
-- **Gráfico de radar** centralizado com os 6 atributos (ver seção 8.8)
-- Botões: [Quests] [+Nova Quest] [Stats]
-- Dimensão padrão: ~320×400px, arrastável
-
-### 8.2 Painel de Quests
-- Lista de quests pendentes (principais + secundárias aceitas)
-- Cada card: título, atributos afetados, XP total, botão [Concluir] [Abandonar]
+### Painel de Quests
+- Lista de quests pendentes
+- Card: título, XP por atributo, [✓ Concluir] [Abandonar]
 - Botão "Sugerir Quest do Dia"
+- Diálogo de conclusão com campo de reflexão + popup de level up
 
-### 8.3 Painel Criação de Quest
-- Formulário: título, descrição, atributos (chips selecionáveis), XP por atributo, prazo, recorrência
-- Botão [Criar Quest]
+### Painel de Criação de Quest
+- Chips de atributos (multi-select)
+- Presets de XP com preview em tempo real
+- Seletor de dificuldade com multiplicador visível
 
-### 8.4 Popup de Level Up (automático)
-Aparece ao completar uma quest que resulta em level up:
-```
-╔═══════════════════════════╗
-║   ✦ LEVEL UP!  ✦          ║
-║                            ║
-║   Inteligência             ║
-║   Lv. 6  →  Lv. 7         ║
-║                            ║
-║       [ OK ]               ║
-╚═══════════════════════════╝
-```
-
-### 8.5 Popup de Quest Concluída
-- Título da quest concluída
-- Lista de XP ganho por atributo com animação de contador
-- Alerta de level up se ocorreu
-
-### 8.6 Painel de Histórico
-- Lista das últimas quests concluídas com data e XP ganho
-- Filtro por atributo
-
-### 8.7 Configurações
-- Conta Google (login/logout)
-- ID da planilha (ou botão "Criar nova planilha")
-- Notificações: horário do lembrete diário
-- Nome do jogador
-
-### 8.8 Painel de Estatísticas (Stats)
-Abre ao clicar em [Stats] no painel principal.
-
-- **Radar chart em destaque** (~260×260px):
-  - 6 eixos, um por atributo
-  - O valor de cada eixo é o **nível atual** do atributo (normalizado 0–max_level para o raio)
-  - Preenchimento com cor roxa semi-transparente (`#7B5CF0` a 40% de opacidade)
-  - Bordas com glow azul
-  - Labels dos atributos com ícone + nível (ex: `⚡ Lv.4`)
-- Abaixo do radar: barras de XP individuais por atributo (progresso dentro do nível atual)
-- Dimensão do painel: ~340×520px, arrastável
-
-**Comportamento do radar:**
-- O radar reflete o **nível** de cada atributo, não o XP bruto — isso torna o perfil visual estável e legível
-- Um jogador focado em Inteligência terá o eixo correspondente muito maior que os demais, revelando o "build" do personagem
-- Ao ocorrer level up, o radar anima suavemente expandindo o eixo afetado (`AnimatedRadarChart`)
+### Painel de Calendário
+- Grade mensal com heatmap de XP (intensidade escala com XP do dia)
+- Hoje destacado com borda dourada
+- Clicar no dia → quests concluídas + reflexões do Diário
 
 ---
 
 ## 9. Fluxo de Uso
 
 ```
-Inicializar app
-      │
-      ▼
- Google Sign-In ──► Verificar/criar Sheets
-      │
-      ▼
- Painel Principal flutuante (sempre ativo)
-      │
-      ├── [Quests] ─► Listar quests pendentes
-      │                     │
-      │               [Concluir Quest]
-      │                     │
-      │               Calcular XP + salvar no Sheets
-      │                     │
-      │               Level up? ──► Popup de Level Up
-      │
-      ├── [+Nova Quest] ─► Formulário ─► Salvar no Sheets
-      │
-      └── [Sugerir Quest] ─► Sortear do banco de system_quests
-                                   ─► Popup com opção Aceitar/Ignorar
+Abrir app
+    │
+    ▼
+Login (email + senha) ──► Supabase Auth
+    │
+    ▼
+Carregar dados do Supabase (player + quests)
+    │
+    ▼
+Painel Principal flutuante
+    │
+    ├── [Quests] ──► Lista de pendentes
+    │                    │
+    │              [✓ Concluir]
+    │                    │
+    │              Diálogo: "O que aprendeu?"
+    │                    │
+    │              Calcular XP + bônus arquétipo
+    │                    │
+    │              Level up? ──► Popup dourado
+    │
+    ├── [+ Nova] ──► Formulário ──► Salvar no Supabase
+    │
+    └── [Cal] ──► Calendário com heatmap
 ```
 
 ---
 
-## 10. Notificações
+## 10. Build e Distribuição
 
-- **08h00**: "Você tem X quests pendentes. Bom dia, Hunter."
-- **20h00**: "Você completou quests hoje? Não deixe o dia passar sem progresso."
-- Se nenhuma quest foi concluída no dia: "Dia livre detectado. Quer uma sugestão de quest rápida?"
+### Linux (desenvolvimento)
+```bash
+flutter run -d linux
+```
 
----
+### Linux (release)
+```bash
+flutter build linux --release
+# Bundle em: build/linux/x64/release/bundle/
+```
 
-## 11. Fases de Implementação
+### Android APK (via CI)
+Push uma tag `vX.Y.Z` → GitHub Actions builda e publica em Releases:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-### Fase 1 — Core (MVP funcionando)
-- [ ] Setup Flutter + autenticação Google
-- [ ] Criar/ler planilha automaticamente
-- [ ] Painel principal com radar chart dos atributos
-- [ ] Painel de Stats com radar + barras de XP
-- [ ] Criar e completar quests (principais)
-- [ ] Sistema de XP e level up por atributo
-- [ ] Popup de level up com animação do eixo do radar
-
-### Fase 2 — Janelas Flutuantes
-- [ ] `window_manager` para desktop (frameless, always-on-top, arrastável)
-- [ ] `flutter_overlay_window` para Android
-- [ ] Tema visual Solo Leveling completo
-
-### Fase 3 — Quests Secundárias
-- [ ] Banco de system_quests pré-programado
-- [ ] Botão "Sugerir Quest do Dia"
-- [ ] Notificações locais (flutter_local_notifications)
-
-### Fase 4 — Polimento
-- [ ] Animações (XP aumentando, level up)
-- [ ] Histórico detalhado
-- [ ] Quests recorrentes automáticas (diária/semanal)
-- [ ] Rank global baseado na média dos atributos
-
----
-
-## 12. Dependências Flutter (pubspec.yaml)
-
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-
-  # Google
-  google_sign_in: ^6.2.1
-  googleapis: ^13.1.0
-  googleapis_auth: ^1.4.1
-
-  # State
-  flutter_riverpod: ^2.5.1
-
-  # UI
-  google_fonts: ^6.2.1
-  fl_chart: ^0.69.0          # gráfico de radar
-
-  # Desktop
-  window_manager: ^0.3.9
-
-  # Mobile overlay
-  flutter_overlay_window: ^0.3.0
-
-  # Notificações
-  flutter_local_notifications: ^17.2.2
-
-  # Utils
-  uuid: ^4.4.0
-  intl: ^0.19.0
+### Android APK (local, requer Android SDK)
+```bash
+flutter build apk --release
+# APK em: build/app/outputs/flutter-apk/app-release.apk
 ```
 
 ---
 
-## 13. Estrutura de Pastas
+## 11. Estrutura de Arquivos
 
 ```
 lib/
-├── main.dart
-├── app.dart
+├── main.dart                      # init Supabase + window_manager (desktop)
+├── app.dart                       # router (auth) + inicializador com lifecycle refresh
 ├── core/
-│   ├── constants/         # cores, fontes, ranks
-│   ├── models/            # Attribute, Quest, Player
-│   └── utils/             # xp_calculator.dart, rank.dart
+│   ├── config/supabase_config.dart
+│   ├── constants/
+│   │   ├── app_colors.dart
+│   │   └── app_ranks.dart
+│   ├── models/
+│   │   ├── attribute.dart
+│   │   ├── player.dart            # arquétipos, xpBonusFor(), archetypeLevel
+│   │   └── quest.dart
+│   └── utils/
+│       └── xp_calculator.dart     # xpForLevel(), applyDifficulty(), addXp()
 ├── data/
-│   ├── sheets_repository.dart   # CRUD no Google Sheets
-│   └── system_quests_data.dart  # banco pré-programado hardcoded
+│   ├── supabase_service.dart      # CRUD com try/catch e logging
+│   └── system_quests_data.dart    # banco pré-programado de quests
 ├── features/
-│   ├── auth/
-│   │   └── auth_provider.dart
+│   ├── auth/auth_screen.dart
+│   ├── calendar/calendar_panel.dart
 │   ├── dashboard/
-│   │   ├── dashboard_panel.dart
-│   │   └── attribute_bar.dart
-│   ├── quests/
-│   │   ├── quest_board_panel.dart
-│   │   ├── create_quest_panel.dart
-│   │   └── quest_card.dart
-│   └── notifications/
-│       └── notification_service.dart
+│   │   ├── dashboard_panel.dart   # PlayerNotifier + layout principal
+│   │   └── radar_chart_widget.dart
+│   └── quests/
+│       ├── quest_board_panel.dart # QuestsNotifier + conclusão + reflexão
+│       └── create_quest_panel.dart
 └── widgets/
-    ├── floating_window.dart      # wrapper base para todos os painéis
-    ├── level_up_popup.dart
-    └── quest_complete_popup.dart
+    ├── floating_window.dart
+    ├── draggable_panel.dart
+    └── transparent_route.dart
+
+.github/workflows/release.yml      # CI: build APK + Linux bundle por tag
 ```
 
 ---
 
-## 14. Próximos Passos para Iniciar
+## 12. Backlog
 
-1. **Criar projeto Flutter**: `flutter create kings_path --org com.seuname`
-2. **Ativar plataformas**: `flutter config --enable-windows-desktop`
-3. **Google Cloud Console**: criar projeto, ativar *Google Sheets API* e *Google Drive API*, configurar OAuth2 para desktop e Android
-4. **Copiar `pubspec.yaml`** com as dependências da seção 12
-5. **Implementar na ordem das fases** (seção 11)
-
-> O Google Sheets da conta do usuário será criado automaticamente na primeira autenticação,  
-> já com todas as abas estruturadas. Nenhum servidor externo necessário.
+Ver `melhorias.md` para o roadmap detalhado com prioridades.
