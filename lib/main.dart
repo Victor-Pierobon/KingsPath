@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -37,6 +39,6 @@ void main() async {
 }
 
 bool get _isDesktop {
-  return const bool.fromEnvironment('dart.library.io') &&
-      !const bool.fromEnvironment('dart.library.html');
+  if (kIsWeb) return false;
+  return Platform.isLinux || Platform.isMacOS || Platform.isWindows;
 }

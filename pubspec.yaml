@@ -33,11 +33,6 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # Google
-  google_sign_in: ^6.2.1
-  googleapis: ^13.1.0
-  googleapis_auth: ^1.4.1
-
   # State
   flutter_riverpod: ^2.5.1
 
@@ -47,9 +42,6 @@ dependencies:
 
   # Desktop
   window_manager: ^0.3.9
-
-  # Notificações
-  flutter_local_notifications: ^17.2.2
 
   # Cloud
   supabase_flutter: ^2.12.4

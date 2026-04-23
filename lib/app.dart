@@ -54,14 +54,36 @@ class _AppInitializer extends ConsumerStatefulWidget {
   ConsumerState<_AppInitializer> createState() => _AppInitializerState();
 }
 
-class _AppInitializerState extends ConsumerState<_AppInitializer> {
+class _AppInitializerState extends ConsumerState<_AppInitializer>
+    with WidgetsBindingObserver {
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _silentRefresh();
+  }
+
+  Future<void> _silentRefresh() async {
+    try {
+      await ref.read(playerProvider.notifier).loadFromSupabase();
+      await ref.read(questsProvider.notifier).loadFromSupabase();
+    } catch (e) {
+      debugPrint('[AppInit] refresh: $e');
+    }
   }
 
   Future<void> _load() async {
