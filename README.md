@@ -64,35 +64,40 @@ yay -S flutter
 
 ```sql
 create table profile (
-  id uuid primary key references auth.users on delete cascade,
+  user_id uuid primary key references auth.users on delete cascade,
   name text not null default 'Jogador'
 );
 
 create table attributes (
-  id text not null,
+  attribute_id text not null,
   user_id uuid not null references profile on delete cascade,
   level int not null default 1,
   current_xp int not null default 0,
-  primary key (id, user_id)
+  total_xp_earned int not null default 0,
+  primary key (attribute_id, user_id)
 );
 
 create table quests (
   id uuid primary key,
   user_id uuid not null references profile on delete cascade,
   title text not null,
+  description text not null default '',
   xp_per_attribute jsonb not null default '{}',
   difficulty text not null default 'medio',
+  due_date timestamptz,
+  recurrence text not null default 'none',
   status text not null default 'pending',
   created_at timestamptz not null default now(),
   completed_at timestamptz,
-  reflection text
+  reflection text,
+  is_system_quest boolean not null default false
 );
 
 alter table profile enable row level security;
 alter table attributes enable row level security;
 alter table quests enable row level security;
 
-create policy "own" on profile for all using (auth.uid() = id);
+create policy "own" on profile for all using (auth.uid() = user_id);
 create policy "own" on attributes for all using (auth.uid() = user_id);
 create policy "own" on quests for all using (auth.uid() = user_id);
 ```

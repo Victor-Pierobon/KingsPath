@@ -1,4 +1,3 @@
-import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -339,6 +338,7 @@ class _QuestCard extends ConsumerWidget {
     final playerNotifier = ref.read(playerProvider.notifier);
     final player = ref.read(playerProvider);
     final levelUps = <String>[];
+    final saves = <Future<void>>[];
 
     for (final entry in quest.xpPerAttribute.entries) {
       final attr = player.attribute(entry.key);
@@ -346,14 +346,16 @@ class _QuestCard extends ConsumerWidget {
       final base = applyDifficulty(entry.value, quest.difficulty);
       final xp = (base * player.xpBonusFor(entry.key)).round();
       final result = addXp(attr, xp);
-      unawaited(playerNotifier.updateAttribute(result.attribute));
+      saves.add(playerNotifier.updateAttribute(result.attribute));
       if (result.leveledUp) {
         levelUps.add('${attr.name} ${result.oldLevel} → ${result.attribute.level}');
       }
     }
 
+    saves.add(ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection));
+
     try {
-      await ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection);
+      await Future.wait(saves);
     } catch (e) {
       if (context.mounted) _showSaveError(context);
       return;
