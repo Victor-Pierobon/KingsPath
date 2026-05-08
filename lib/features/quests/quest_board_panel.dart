@@ -7,6 +7,7 @@ import '../../data/supabase_service.dart';
 import '../../widgets/floating_window.dart';
 import '../dashboard/dashboard_panel.dart';
 import '../../data/system_quests_data.dart';
+import '../skills/skills_panel.dart';
 
 void _showSaveError(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -219,6 +220,16 @@ class _QuestCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final globalLevel = ref.watch(playerProvider).globalLevel;
+    final xp = questXpForLevel(globalLevel, quest.difficulty);
+    final attrLabels = quest.xpPerAttribute.keys.map((k) => '+$xp XP $k').join('  ');
+    final diffLabel = switch (quest.difficulty) {
+      QuestDifficulty.facil => 'Fácil',
+      QuestDifficulty.medio => 'Médio',
+      QuestDifficulty.dificil => 'Difícil',
+      QuestDifficulty.epico => 'Épico',
+    };
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -233,9 +244,15 @@ class _QuestCard extends ConsumerWidget {
               style: const TextStyle(
                   color: AppColors.text, fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
-          Text(
-            quest.xpPerAttribute.entries.map((e) => '+${e.value} XP ${e.key}').join('  '),
-            style: const TextStyle(color: AppColors.accent, fontSize: 12),
+          Row(
+            children: [
+              Text(attrLabels,
+                  style: const TextStyle(color: AppColors.accent, fontSize: 12)),
+              const Spacer(),
+              Text(diffLabel,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 11)),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -277,10 +294,15 @@ class _QuestCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '+${applyDifficulty(quest.totalXp, quest.difficulty)} XP total',
-              style: const TextStyle(color: AppColors.accent, fontSize: 13),
-            ),
+            Builder(builder: (ctx) {
+              final gl = ref.read(playerProvider).globalLevel;
+              final xpEach = questXpForLevel(gl, quest.difficulty);
+              final total = xpEach * quest.xpPerAttribute.length;
+              return Text(
+                '+$total XP total  ($xpEach × ${quest.xpPerAttribute.length} atributo${quest.xpPerAttribute.length > 1 ? 's' : ''})',
+                style: const TextStyle(color: AppColors.accent, fontSize: 13),
+              );
+            }),
             const SizedBox(height: 16),
             const Text(
               'O que você aprendeu? (opcional)',
@@ -343,16 +365,23 @@ class _QuestCard extends ConsumerWidget {
     for (final entry in quest.xpPerAttribute.entries) {
       final attr = player.attribute(entry.key);
       if (attr == null) continue;
-      final base = applyDifficulty(entry.value, quest.difficulty);
-      final xp = (base * player.xpBonusFor(entry.key)).round();
+      final xp = (questXpForLevel(player.globalLevel, quest.difficulty) *
+              player.xpBonusFor(entry.key))
+          .round();
       final result = addXp(attr, xp);
-      saves.add(playerNotifier.updateAttribute(result.attribute));
+      // Completar quest reseta o timer de decay para este atributo
+      saves.add(playerNotifier.updateAttribute(result.attribute.copyWith(clearDecay: true)));
       if (result.leveledUp) {
         levelUps.add('${attr.name} ${result.oldLevel} → ${result.attribute.level}');
       }
     }
 
     saves.add(ref.read(questsProvider.notifier).completeQuest(quest.id, reflection: reflection));
+
+    // Reacende habilidades praticadas nesta quest
+    if (quest.skillIds.isNotEmpty) {
+      saves.add(ref.read(skillsProvider.notifier).markPracticed(quest.skillIds));
+    }
 
     try {
       await Future.wait(saves);

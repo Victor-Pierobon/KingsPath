@@ -8,6 +8,7 @@ import '../dashboard/radar_chart_widget.dart';
 import '../quests/quest_board_panel.dart';
 import '../quests/create_quest_panel.dart';
 import '../calendar/calendar_panel.dart';
+import '../skills/skills_panel.dart';
 
 class MobileHome extends ConsumerStatefulWidget {
   const MobileHome({super.key});
@@ -44,6 +45,7 @@ class _MobileHomeState extends ConsumerState<MobileHome> {
             _DashTab(),
             _QuestsTab(),
             _CalendarTab(),
+            _SkillsTab(),
           ],
         ),
       ),
@@ -75,6 +77,11 @@ class _MobileHomeState extends ConsumerState<MobileHome> {
             icon: Icon(Icons.calendar_month_outlined),
             activeIcon: Icon(Icons.calendar_month),
             label: 'Calendário',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.hub_outlined),
+            activeIcon: Icon(Icons.hub),
+            label: 'Habilidades',
           ),
         ],
       ),
@@ -254,6 +261,18 @@ class _CalendarTab extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
       child: CalendarPanel(onClose: () {}, mobileMode: true),
+    );
+  }
+}
+
+class _SkillsTab extends StatelessWidget {
+  const _SkillsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8),
+      child: SkillsPanel(onClose: () {}, mobileMode: true),
     );
   }
 }

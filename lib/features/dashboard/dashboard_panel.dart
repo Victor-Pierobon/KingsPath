@@ -9,6 +9,7 @@ import '../../widgets/draggable_panel.dart';
 import '../quests/quest_board_panel.dart';
 import '../quests/create_quest_panel.dart';
 import '../calendar/calendar_panel.dart';
+import '../skills/skills_panel.dart';
 import 'radar_chart_widget.dart';
 
 final playerProvider = StateNotifierProvider<PlayerNotifier, Player>((ref) {
@@ -37,6 +38,7 @@ class PlayerNotifier extends StateNotifier<Player> {
 final _showQuestsProvider = StateProvider<bool>((ref) => false);
 final _showCreateProvider = StateProvider<bool>((ref) => false);
 final _showCalendarProvider = StateProvider<bool>((ref) => false);
+final _showSkillsProvider = StateProvider<bool>((ref) => false);
 
 class DashboardPanel extends ConsumerWidget {
   const DashboardPanel({super.key});
@@ -47,6 +49,7 @@ class DashboardPanel extends ConsumerWidget {
     final showQuests = ref.watch(_showQuestsProvider);
     final showCreate = ref.watch(_showCreateProvider);
     final showCalendar = ref.watch(_showCalendarProvider);
+    final showSkills = ref.watch(_showSkillsProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -78,6 +81,14 @@ class DashboardPanel extends ConsumerWidget {
               child: CalendarPanel(
                 onClose: () =>
                     ref.read(_showCalendarProvider.notifier).state = false,
+              ),
+            ),
+          if (showSkills)
+            DraggablePanel(
+              initialOffset: const Offset(360, 16),
+              child: SkillsPanel(
+                onClose: () =>
+                    ref.read(_showSkillsProvider.notifier).state = false,
               ),
             ),
         ],
@@ -228,8 +239,9 @@ class _DashboardContent extends ConsumerWidget {
           const SizedBox(width: 6),
           Expanded(
             child: _GlowButton(
-              label: 'Stats',
-              onTap: () {},
+              label: 'Skills',
+              onTap: () =>
+                  ref.read(_showSkillsProvider.notifier).state = true,
             ),
           ),
         ],

@@ -5,16 +5,18 @@ import '../../core/constants/app_colors.dart';
 import '../../core/models/quest.dart';
 import '../../core/utils/xp_calculator.dart';
 import '../../widgets/floating_window.dart';
+import '../dashboard/dashboard_panel.dart';
+import '../skills/skills_panel.dart';
 import 'quest_board_panel.dart';
 
 const _attributes = [
-  'forca', 'inteligencia', 'sabedoria', 'destreza', 'carisma', 'relacionamento'
+  'fisico', 'inteligencia', 'sabedoria', 'espiritualidade', 'carisma', 'relacionamento'
 ];
 const _attributeLabels = {
-  'forca': '⚡ Força',
+  'fisico': '💪 Físico',
   'inteligencia': '📘 Inteligência',
   'sabedoria': '🌿 Sabedoria',
-  'destreza': '💨 Destreza',
+  'espiritualidade': '✨ Espiritualidade',
   'carisma': '👁 Carisma',
   'relacionamento': '🤝 Relacionamento',
 };
@@ -32,10 +34,8 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final Set<String> _selected = {};
+  final Set<String> _selectedSkills = {};
   QuestDifficulty _difficulty = QuestDifficulty.medio;
-  int _baseXp = 50;
-
-  static const _xpPresets = [25, 50, 100, 250, 500];
 
   @override
   void dispose() {
@@ -64,10 +64,7 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
             const SizedBox(height: 8),
             _attributeChips(),
             const SizedBox(height: 12),
-            const Text('XP base por atributo',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            const SizedBox(height: 8),
-            _xpPresetChips(),
+            _skillsSection(),
             const SizedBox(height: 12),
             const Text('Dificuldade',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -179,42 +176,58 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
     );
   }
 
-  Widget _xpPresetChips() {
-    return Wrap(
-      spacing: 6,
-      children: _xpPresets.map((xp) {
-        final selected = _baseXp == xp;
-        return GestureDetector(
-          onTap: () => setState(() => _baseXp = xp),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.accent.withValues(alpha: 0.2) : Colors.transparent,
-              border: Border.all(
-                color: selected ? AppColors.accent : AppColors.accent.withValues(alpha: 0.3),
+  Widget _skillsSection() {
+    final skills = ref.watch(skillsProvider);
+    if (skills.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Habilidades praticadas (opcional)',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        const SizedBox(height: 4),
+        const Text(
+          'Reacende o brilho dessas habilidades na teia',
+          style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: skills.map((skill) {
+            final on = _selectedSkills.contains(skill.id);
+            return GestureDetector(
+              onTap: () => setState(
+                  () => on ? _selectedSkills.remove(skill.id) : _selectedSkills.add(skill.id)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: on
+                      ? AppColors.gold.withValues(alpha: 0.18)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: on
+                        ? AppColors.gold
+                        : AppColors.gold.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  skill.name,
+                  style: TextStyle(
+                      color: on ? AppColors.gold : AppColors.textMuted,
+                      fontSize: 11),
+                ),
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$xp',
-              style: TextStyle(
-                color: selected ? AppColors.accent : AppColors.textMuted,
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
   Widget _xpPreview() {
-    final finalXp = applyDifficulty(_baseXp, _difficulty);
-    final multiplier = difficultyMultiplier(_difficulty);
-    final multiplierStr = multiplier == multiplier.truncateToDouble()
-        ? '${multiplier.toInt()}x'
-        : '${multiplier}x';
+    final globalLevel = ref.read(playerProvider).globalLevel;
+    final xp = questXpForLevel(globalLevel, _difficulty);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -224,7 +237,7 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
       child: Text(
-        '$_baseXp × $multiplierStr = $finalXp XP por atributo',
+        '$xp XP por atributo  •  Lv. $globalLevel global',
         style: const TextStyle(color: AppColors.accent, fontSize: 13),
         textAlign: TextAlign.center,
       ),
@@ -307,15 +320,18 @@ class _CreateQuestPanelState extends ConsumerState<CreateQuestPanel> {
       );
       return;
     }
+    final globalLevel = ref.read(playerProvider).globalLevel;
+    final xp = questXpForLevel(globalLevel, _difficulty);
     final quest = Quest(
       id: const Uuid().v4(),
       title: title,
       description: _descCtrl.text.trim(),
-      xpPerAttribute: {for (final a in _selected) a: _baseXp},
+      xpPerAttribute: {for (final a in _selected) a: xp},
       difficulty: _difficulty,
       recurrence: QuestRecurrence.none,
       status: QuestStatus.pending,
       createdAt: DateTime.now(),
+      skillIds: _selectedSkills.toList(),
     );
     try {
       await ref.read(questsProvider.notifier).addQuest(quest);

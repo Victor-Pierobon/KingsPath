@@ -24,7 +24,7 @@ class Player {
   }
 
   Archetype get archetype {
-    final guerreiro = _avg(['forca', 'destreza']);
+    final guerreiro = _avg(['fisico', 'espiritualidade']);
     final mago = _avg(['inteligencia', 'sabedoria']);
     final rei = _avg(['carisma', 'relacionamento']);
     final maxVal = [guerreiro, mago, rei].reduce((a, b) => a > b ? a : b);
@@ -48,7 +48,7 @@ class Player {
       };
 
   static const _archetypeAttrs = {
-    Archetype.guerreiro: ['forca', 'destreza'],
+    Archetype.guerreiro: ['fisico', 'espiritualidade'],
     Archetype.mago: ['inteligencia', 'sabedoria'],
     Archetype.rei: ['carisma', 'relacionamento'],
     Archetype.equilibrado: <String>[],

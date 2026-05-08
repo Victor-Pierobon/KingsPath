@@ -8,7 +8,7 @@ class Quest {
   final String id;
   final String title;
   final String description;
-  final Map<String, int> xpPerAttribute; // {'forca': 60, 'inteligencia': 20}
+  final Map<String, int> xpPerAttribute;
   final QuestDifficulty difficulty;
   final DateTime? dueDate;
   final QuestRecurrence recurrence;
@@ -17,6 +17,7 @@ class Quest {
   final DateTime? completedAt;
   final String? reflection;
   final bool isSystemQuest;
+  final List<String> skillIds; // habilidades praticadas nesta quest
 
   const Quest({
     required this.id,
@@ -31,11 +32,18 @@ class Quest {
     this.completedAt,
     this.reflection,
     this.isSystemQuest = false,
+    this.skillIds = const [],
   });
 
   int get totalXp => xpPerAttribute.values.fold(0, (a, b) => a + b);
 
-  Quest copyWith({QuestStatus? status, DateTime? completedAt, String? reflection}) => Quest(
+  Quest copyWith({
+    QuestStatus? status,
+    DateTime? completedAt,
+    String? reflection,
+    List<String>? skillIds,
+  }) =>
+      Quest(
         id: id,
         title: title,
         description: description,
@@ -48,6 +56,7 @@ class Quest {
         completedAt: completedAt ?? this.completedAt,
         reflection: reflection ?? this.reflection,
         isSystemQuest: isSystemQuest,
+        skillIds: skillIds ?? this.skillIds,
       );
 
   Map<String, dynamic> toMap() => {
@@ -61,6 +70,7 @@ class Quest {
         'recurrence': recurrence.name,
         'status': status.name,
         'created_at': createdAt.toIso8601String(),
+        'skill_ids': skillIds,
       };
 
   static Quest fromMap(Map<String, dynamic> map) {
@@ -89,6 +99,9 @@ class Quest {
         orElse: () => QuestStatus.pending,
       ),
       createdAt: DateTime.tryParse(map['created_at']) ?? DateTime.now(),
+      skillIds: (map['skill_ids'] as List<dynamic>? ?? [])
+          .map((e) => e as String)
+          .toList(),
     );
   }
 }

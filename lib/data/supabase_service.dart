@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/models/attribute.dart';
 import '../core/models/player.dart';
 import '../core/models/quest.dart';
+import '../core/models/skill.dart';
 
 class SupabaseService {
   static final instance = SupabaseService._();
@@ -50,6 +51,7 @@ class SupabaseService {
                 'level': r['level'],
                 'current_xp': r['current_xp'],
                 'total_xp_earned': r['total_xp_earned'],
+                'decay_applied_until': r['decay_applied_until'],
               })).toList();
 
       return Player(name: name, attributes: attributes);
@@ -93,6 +95,7 @@ class SupabaseService {
         'level': attr.level,
         'current_xp': attr.currentXp,
         'total_xp_earned': attr.totalXpEarned,
+        'decay_applied_until': attr.decayAppliedUntil?.toIso8601String().substring(0, 10),
       });
     } catch (e) {
       _log('saveAttribute(${attr.id})', e);
@@ -112,11 +115,19 @@ class SupabaseService {
 
       return (rows as List).map((r) {
         final rawXp = r['xp_per_attribute'] as Map<String, dynamic>;
+        // Migração de IDs antigos para novos
+        final migratedXp = rawXp.map((k, v) {
+          final newKey = k == 'forca' ? 'fisico' : (k == 'destreza' ? 'espiritualidade' : k);
+          return MapEntry(newKey, (v as num).toInt());
+        });
         return Quest(
           id: r['id'] as String,
           title: r['title'] as String,
           description: r['description'] as String? ?? '',
-          xpPerAttribute: rawXp.map((k, v) => MapEntry(k, (v as num).toInt())),
+          xpPerAttribute: migratedXp,
+          skillIds: (r['skill_ids'] as List<dynamic>? ?? [])
+              .map((e) => e as String)
+              .toList(),
           difficulty: QuestDifficulty.values.firstWhere(
             (d) => d.name == r['difficulty'],
             orElse: () => QuestDifficulty.facil,
@@ -159,9 +170,69 @@ class SupabaseService {
         'created_at': q.createdAt.toIso8601String(),
         'completed_at': q.completedAt?.toIso8601String(),
         'is_system_quest': q.isSystemQuest,
+        'skill_ids': q.skillIds,
       });
     } catch (e) {
       _log('insertQuest(${q.id})', e);
+      rethrow;
+    }
+  }
+
+  // ── Skills ────────────────────────────────────────────────────────────────
+
+  Future<List<Skill>> fetchSkills() async {
+    try {
+      final rows = await _db
+          .from('skills')
+          .select()
+          .eq('user_id', _uid)
+          .order('created_at');
+      return (rows as List).map((r) => Skill.fromMap(r)).toList();
+    } catch (e) {
+      _log('fetchSkills', e);
+      rethrow;
+    }
+  }
+
+  Future<void> upsertSkill(Skill skill) async {
+    try {
+      await _db.from('skills').upsert({
+        'id': skill.id,
+        'user_id': _uid,
+        'name': skill.name,
+        'attribute_ids': skill.attributeIds,
+        'related_skill_ids': skill.relatedSkillIds,
+        'last_practiced_at': skill.lastPracticedAt?.toIso8601String(),
+        'created_at': skill.createdAt.toIso8601String(),
+      });
+    } catch (e) {
+      _log('upsertSkill(${skill.id})', e);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSkill(String id) async {
+    try {
+      await _db.from('skills').delete().eq('id', id).eq('user_id', _uid);
+    } catch (e) {
+      _log('deleteSkill($id)', e);
+      rethrow;
+    }
+  }
+
+  Future<void> markSkillsPracticed(List<String> skillIds) async {
+    if (skillIds.isEmpty) return;
+    final now = DateTime.now().toIso8601String();
+    try {
+      for (final id in skillIds) {
+        await _db
+            .from('skills')
+            .update({'last_practiced_at': now})
+            .eq('id', id)
+            .eq('user_id', _uid);
+      }
+    } catch (e) {
+      _log('markSkillsPracticed', e);
       rethrow;
     }
   }
